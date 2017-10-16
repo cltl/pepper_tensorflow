@@ -83,11 +83,9 @@ class Classify:
         self.session = tf.Session()
         self.softmax = self.session.graph.get_tensor_by_name('softmax:0')
 
-    def classify(self, path: str):
-        image = tf.gfile.FastGFile(path, 'rb').read()
-
+    def classify(self, jpeg: bytes):
         with tf.device('/cpu:0'):
-            predictions = np.squeeze(self.session.run(self.softmax, {'DecodeJpeg/contents:0': image}))
+            predictions = np.squeeze(self.session.run(self.softmax, {'DecodeJpeg/contents:0': jpeg}))
 
         top_predictions = predictions.argsort()[-self.n_predictions:][::-1]
 
@@ -97,7 +95,7 @@ class Classify:
         self.session.close()
 
 
-class ClassifyRequestHandler(BaseRequestHandler):
+class ClassifyRequestHandlerOLD(BaseRequestHandler):
 
     CLASSIFY = Classify()
 
@@ -115,6 +113,37 @@ class ClassifyRequestHandler(BaseRequestHandler):
 
         except ConnectionResetError:
             pass
+
+
+class ClassifyRequestHandler(BaseRequestHandler):
+
+    CLASSIFY = Classify()
+
+    def handle(self):
+        try:
+
+            t0 = time()
+            jpeg_size = int(np.frombuffer(self.request.recv(4), np.uint32)[0])
+            jpeg = self._receive_bytes(jpeg_size)
+
+            classification = self.CLASSIFY.classify(jpeg)
+
+            print("[{}][{:3.2f}s] {}: [{:3.0%}] {}".format(
+                strftime("%H:%M:%S"), time() - t0, self.client_address,
+                classification[0][0], classification[0][1]))
+
+            self.request.sendall(yaml.dump(classification).encode())
+
+        except ConnectionResetError:
+            pass
+
+    def _receive_bytes(self, n):
+        jpeg_buffer = bytearray()
+
+        while len(jpeg_buffer) < n:
+            jpeg_buffer.extend(self.request.recv(4096))
+
+        return bytes(jpeg_buffer)
 
 
 class ClassifyServer(TCPServer):
