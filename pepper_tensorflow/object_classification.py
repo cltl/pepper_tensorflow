@@ -72,7 +72,7 @@ class NodeLookup:
 class Classify:
     IMAGE_GRAPH = os.path.join(MODEL_DIR, r'classify_image_graph_def.pb')
 
-    def __init__(self, n_predictions: int = 1):
+    def __init__(self, n_predictions: int = 5):
         """
         Classify Jpeg images
 
@@ -92,6 +92,9 @@ class Classify:
         self.session = tf.Session()
         self.softmax = self.session.graph.get_tensor_by_name('softmax:0')
 
+        print([operation.name for operation in self.session.graph.get_operations()])
+        self.tensor = self.session.graph.get_tensor_by_name('softmax/weights:0')
+
     def classify(self, jpeg: bytes):
         """
         Classify Jpeg
@@ -108,10 +111,8 @@ class Classify:
         """
         with tf.device('/cpu:0'):
             predictions = np.squeeze(self.session.run(self.softmax, {'DecodeJpeg/contents:0': jpeg}))
-
-        top_predictions = predictions.argsort()[-self.n_predictions:][::-1]
-
-        return [[float(predictions[node_id]), self.node.get(node_id).split(', ')] for node_id in top_predictions]
+            top_predictions = predictions.argsort()[-self.n_predictions:][::-1]
+            return [[float(predictions[node_id]), self.node.get(node_id).split(', ')] for node_id in top_predictions]
 
     def __del__(self):
         self.session.close()
@@ -233,3 +234,5 @@ class ClassifyClient:
 
 if __name__ == "__main__":
     server = ClassifyServer(9999)
+    client = ClassifyClient(('localhost', 9999))
+    client.classify(r'C:\Users\Bram\Documents\Pepper\pepper_tensorflow\pepper_tensorflow\model\inception\cropped_panda.jpg')
