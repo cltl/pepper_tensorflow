@@ -109,10 +109,9 @@ class Classify:
         classification: list of (float, list)
             List of confidence-object pairs
         """
-        with tf.device('/cpu:0'):
-            predictions = np.squeeze(self.session.run(self.softmax, {'DecodeJpeg/contents:0': jpeg}))
-            top_predictions = predictions.argsort()[-self.n_predictions:][::-1]
-            return [[float(predictions[node_id]), self.node.get(node_id).split(', ')] for node_id in top_predictions]
+        predictions = np.squeeze(self.session.run(self.softmax, {'DecodeJpeg/contents:0': jpeg}))
+        top_predictions = predictions.argsort()[-self.n_predictions:][::-1]
+        return [[float(predictions[node_id]), self.node.get(node_id).split(', ')] for node_id in top_predictions]
 
     def __del__(self):
         self.session.close()
@@ -234,5 +233,7 @@ class ClassifyClient:
 
 if __name__ == "__main__":
     server = ClassifyServer(9999)
+    print("Object Classification Server Running\n"
+          "------------------------------------\n")
     client = ClassifyClient(('localhost', 9999))
     client.classify(r'C:\Users\Bram\Documents\Pepper\pepper_tensorflow\pepper_tensorflow\model\inception\cropped_panda.jpg')
