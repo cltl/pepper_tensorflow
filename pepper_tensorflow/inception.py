@@ -236,4 +236,4 @@ if __name__ == "__main__":
     print("Object Classification Server Running\n"
           "------------------------------------\n")
     client = ClassifyClient(('localhost', 9999))
-    client.classify(r'C:\Users\Bram\Documents\Pepper\pepper_tensorflow\pepper_tensorflow\model\inception\cropped_panda.jpg')
+    client.classify('model\inception\cropped_panda.jpg')
