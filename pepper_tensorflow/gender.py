@@ -21,8 +21,6 @@ class GenderModel:
         self.y = tf.nn.softmax(tf.matmul(self.x, self.W) + self.b)  # Softmax Function
         self.y_ = tf.placeholder(tf.float32, [None, 2])             # Correct Answers
 
-        
-
     def train(self, face: np.ndarray, gender: np.ndarray,
               learning_rate = 0.25, training_steps = 5000, batch_size = 2000):
         """
@@ -215,7 +213,6 @@ class ClassifyClient(object):
 
 
 if __name__ == "__main__":
-
     # # Train & Test Model
     # model = GenderModel()
     # model.train(*GenderModel.load_data('imdb'))
