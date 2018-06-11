@@ -110,7 +110,7 @@ class ClassifyRequestHandler(BaseRequestHandler):
             image = self._receive_image(width, height, channels)
             response = json.dumps(self.CLASSIFY.classify(image))
 
-            print(len(response))
+            print("Image({}, {}, {}) -> {}".format(width, height, channels, response))
 
             self.request.sendall(np.uint32(len(response)))
             self.request.sendall(response.encode())
