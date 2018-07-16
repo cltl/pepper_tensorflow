@@ -23,7 +23,7 @@ import numpy as np
 from threading import Thread
 from socketserver import TCPServer, BaseRequestHandler
 from socket import socket
-import yaml
+import json
 
 import os
 import re
@@ -137,7 +137,7 @@ class ClassifyRequestHandler(BaseRequestHandler):
             classification = self.CLASSIFY.classify(jpeg)
 
             # Return yaml-encoded classification
-            self.request.sendall(yaml.dump(classification).encode())
+            self.request.sendall(json.dumps(classification).encode())
 
             # Print statistics
             print("[{}][{:3.2f}s] {}: [{:3.0%}] {}".format(
@@ -224,7 +224,7 @@ class ClassifyClient:
         sock.sendall(jpeg_size)
         sock.sendall(jpeg)
 
-        response = yaml.load(sock.recv(4096).decode())
+        response = json.loads(sock.recv(4096).decode())
 
         sock.close()
 
