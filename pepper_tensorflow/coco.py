@@ -160,3 +160,4 @@ class ClassifyClient:
 
 if __name__ == "__main__":
     ClassifyServer()
+    print("Running!")
