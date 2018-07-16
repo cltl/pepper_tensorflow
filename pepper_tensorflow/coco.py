@@ -1,5 +1,4 @@
 from pepper_tensorflow.model.coco import label_map_util, visualization_utils
-from scipy.ndimage import imread
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
@@ -9,7 +8,6 @@ from threading import Thread
 from socketserver import TCPServer, BaseRequestHandler
 from socket import socket
 
-from time import time
 import os
 
 
