@@ -1,3 +1,5 @@
 .idea/
 *.pyc
 pepper_tensorflow/data/
+
+venv/*
