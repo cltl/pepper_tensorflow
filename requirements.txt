@@ -21,5 +21,4 @@ vs2015_runtime=14.0.25420=0
 werkzeug=0.12.2=py36_0
 wheel=0.29.0=py36_0
 wincertstore=0.2=py36_0
-yaml=0.1.6=0
 zlib=1.2.11=vc14_0

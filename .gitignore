@@ -1,4 +1,5 @@
 .idea/
+.DS_Store
 *.pyc
 pepper_tensorflow/data/
 
