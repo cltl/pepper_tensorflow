@@ -15,12 +15,31 @@ from typing import Dict, Iterable
 
 
 class ObjectDetectionModelPath:
-    def __init__(self, name, root, graph, labels):
+    def __init__(self, name: str, root: str, graph: str, labels: str):
+        """
+        Object Detection Model Paths
+
+        Parameters
+        ----------
+        name: str
+            Model Name (Used as ID)
+        root: str
+            Root of Object Detection Files
+        graph: str
+            path to frozen_inference_graph.pb, relative to root
+        labels: str
+            path to labelmap.json, relative to root
+        """
         self.name = name
         self.root = root
         self.graph = os.path.join(self.root, graph)
         self.labels = os.path.join(self.root, labels)
 
+
+# Descriptions for each Object Detection Model,
+# You can add your own by adding an extra entry in the same format
+# Make sure to download the necessary data from the Tensorflow Model Zoo:
+#   https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
 
 class ObjectDetectionModel:
     AVA = ObjectDetectionModelPath(
@@ -36,12 +55,24 @@ class ObjectDetectionModel:
     OID = ObjectDetectionModelPath(
         name="OID",
         root=os.path.join(os.path.dirname(__file__), 'model/oid'),
-        graph='faster_rcnn_inception_resnet_v2_atrous_oid_2018_01_28/frozen_inference_graph.pb',
+        graph='faster_rcnn_inception_resnet_v2_atrous_lowproposals_oid_2018_01_28/frozen_inference_graph.pb',
         labels='labelmap.json')
 
 
 class Object:
-    def __init__(self, name, score, box):
+    def __init__(self, name: str, score: float, box: list):
+        """
+        Object Representation
+
+        Parameters
+        ----------
+        name: str
+            Object Identifier
+        score: float
+            Object Recognition Confidence
+        box: list
+            Bounding Box (in relative coordinates)
+        """
         self._name = name
         self._score = score
         self._box = box
@@ -76,7 +107,13 @@ class ObjectDetection:
     BOXES = 'detection_boxes:0'
 
     def __init__(self, model: ObjectDetectionModelPath):
+        """
+        Perform Object Detection using Object Detection Model
 
+        Parameters
+        ----------
+        model: ObjectDetectionModelPath
+        """
         t0 = time()
 
         self._model = model
@@ -118,6 +155,17 @@ class ObjectDetection:
         return self._session
 
     def classify(self, image: np.ndarray) -> Iterable[Object]:
+        """
+        Classify Objects in an image
+
+        Parameters
+        ----------
+        image: np.ndarray
+
+        Yields
+        ------
+        object: Object
+        """
         output = self.session.run(self._tensor_dict, {self._image_tensor: np.expand_dims(image, 0)})
         for index, score, box in zip(output[self.CLASSES][0], output[self.SCORES][0], output[self.BOXES][0]):
             yield Object(str(self._labels[int(index)]['name']), float(score), box.tolist())
@@ -144,19 +192,35 @@ class ObjectDetection:
 
 
 class ObjectDetectionRequestHandler(BaseRequestHandler):
+    """
+    Object Detection Request Handler
+
+    Receives an Image and Responds with Objects
+    """
+
     def handle(self):
         try:
             t0 = time()
 
+            # Receive image width, height and channels from Client
             width, height, channels = np.frombuffer(self.request.recv(3*4), np.uint32)
+
+            # Receive image of the agreed dimensions from Client
             image = self._receive_image(width, height, channels)
+
+            # Classify image and formulate JSON response
             response = json.dumps([obj.to_dict() for obj in self.server.classifier.classify(image)])
 
-            print(f"[{time() - t0:3.2f}s] {self.server.classifier.__str__():20s} {response}")
-
+            # Send length of response to Client
             self.request.sendall(np.uint32(len(response)))
+
+            # Send response to Client
             self.request.sendall(response.encode())
 
+            # Print Statistics to Terminal
+            print(f"[{time() - t0:3.2f}s] {self.server.classifier.__str__():20s} {response}")
+
+        # Ignore error when other end hangs up
         except ConnectionResetError:
             pass
 
@@ -170,6 +234,16 @@ class ObjectDetectionRequestHandler(BaseRequestHandler):
 
 class ObjectDetectionServer(TCPServer):
     def __init__(self, classifier: ObjectDetection, port: int, daemon: bool = False):
+        """
+        Start Object Detection Server
+
+        Parameters
+        ----------
+        classifier: ObjectDetection
+        port: int
+        daemon: bool
+        """
+
         super().__init__(('', port), ObjectDetectionRequestHandler)
         self._classifier = classifier
         Thread(target=self.serve_forever, daemon=daemon).start()
@@ -181,18 +255,46 @@ class ObjectDetectionServer(TCPServer):
 
 class ObjectDetectionClient:
     def __init__(self, address: tuple):
+        """
+        Object Detection Client
+
+        Parameters
+        ----------
+        address: str, int
+            Address of Server
+        """
         self._address = address
 
     def classify(self, image: np.ndarray):
+        """
+        Classify Image using Object Detection Server
+
+        Parameters
+        ----------
+        image: np.ndarray
+
+        Returns
+        -------
+        response: list of Object
+        """
+
+        # Create socket and connect to Server
         sock = socket()
         sock.connect(self._address)
 
+        # Send image shape to Server
         sock.sendall(np.array(image.shape, np.uint32).tobytes())
+
+        # Send image to Server
         sock.sendall(image.tobytes())
 
+        # Receive response length from Server
         response_length = np.frombuffer(sock.recv(4), np.uint32)[0]
+
+        # Receive and parse Sever response
         response = [Object.from_dict(info) for info in json.loads(self._receive_all(sock, response_length).decode())]
 
+        # Return to caller
         return response
 
     @staticmethod
@@ -204,13 +306,14 @@ class ObjectDetectionClient:
 
 
 if __name__ == '__main__':
-    # # Translate .pbtxt to .json
-    # for src in [ObjectDetectionModel.COCO, ObjectDetectionModel.OID, ObjectDetectionModel.AVA]:
-    #     path, ext = os.path.splitext(src.labels)
-    #     ObjectDetection.pbtxt_to_json(path + '.pbtxt')
 
+    # Describing Ports to Communicate over with Main Pepper Application
+    # These should are synced with the client side!
     AVA_port, COCO_port, OID_port = 27001, 27002, 27003
 
-    # AVA_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.AVA), AVA_port)
+    # Specify which ObjectDetectionServers to Run
+    # Make sure to have enough CPU/RAM if you plan to launch multiple at the same time
+
     COCO_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.COCO), COCO_port)
+    # AVA_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.AVA), AVA_port)
     # OID_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.OID), OID_port)
