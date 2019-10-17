@@ -55,7 +55,7 @@ class ObjectDetectionModel:
     OID = ObjectDetectionModelPath(
         name="OID",
         root=os.path.join(os.path.dirname(__file__), 'model/oid'),
-        graph='faster_rcnn_inception_resnet_v2_atrous_lowproposals_oid_2018_01_28/frozen_inference_graph.pb',
+        graph='ssd_mobilenet_v2_oid_v4_2018_12_12/frozen_inference_graph.pb',
         labels='labelmap.json')
 
 
@@ -315,5 +315,5 @@ if __name__ == '__main__':
     # Make sure to have enough CPU/RAM if you plan to launch multiple at the same time
 
     COCO_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.COCO), COCO_port)
-    # AVA_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.AVA), AVA_port)
-    # OID_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.OID), OID_port)
+#     # AVA_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.AVA), AVA_port)
+    OID_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.OID), OID_port)
