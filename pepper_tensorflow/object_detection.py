@@ -198,6 +198,8 @@ class ObjectDetectionRequestHandler(BaseRequestHandler):
     Receives an Image and Responds with Objects
     """
 
+    STATISTICS_SCORE_THRESHOLD = 0.1
+
     def handle(self):
         try:
             t0 = time()
@@ -208,8 +210,11 @@ class ObjectDetectionRequestHandler(BaseRequestHandler):
             # Receive image of the agreed dimensions from Client
             image = self._receive_image(width, height, channels)
 
-            # Classify image and formulate JSON response
-            response = json.dumps([obj.to_dict() for obj in self.server.classifier.classify(image)])
+            # Classify Objects in Image
+            objects = [obj for obj in self.server.classifier.classify(image)]
+
+            # Create JSON dump of Objects
+            response = json.dumps([obj.to_dict() for obj in objects])
 
             # Send length of response to Client
             self.request.sendall(np.uint32(len(response)))
@@ -218,7 +223,8 @@ class ObjectDetectionRequestHandler(BaseRequestHandler):
             self.request.sendall(response.encode())
 
             # Print Statistics to Terminal
-            print(f"[{time() - t0:3.2f}s] {self.server.classifier.__str__():20s} {response}")
+            print(f"[{time() - t0:3.2f}s] {self.server.classifier.__str__():20s} "
+                  f"{[obj.name for obj in objects if obj.score > self.STATISTICS_SCORE_THRESHOLD]}")
 
         # Ignore error when other end hangs up
         except ConnectionResetError:
@@ -307,12 +313,12 @@ class ObjectDetectionClient:
 
 if __name__ == '__main__':
 
-    # Describing Ports to Communicate over with Main Pepper Application
-    # These should are synced with the client side!
+    # Describing Ports to Communicate with Main Pepper Application
+    # These should be synced with the client side!
     AVA_port, COCO_port, OID_port = 27001, 27002, 27003
 
     # Specify which ObjectDetectionServers to Run
-    # Make sure to have enough CPU/RAM if you plan to launch multiple at the same time
+    # Make sure to have enough CPU/GPU/RAM if you plan to launch multiple at the same time
 
     COCO_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.COCO), COCO_port)
 #     # AVA_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.AVA), AVA_port)
