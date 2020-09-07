@@ -1,4 +1,9 @@
-import tensorflow as tf
+try:
+    import tensorflow.compat.v1 as tf
+    tf.disable_v2_behavior()
+except ImportError:
+    import tensorflow as tf
+
 import numpy as np
 
 from threading import Thread
@@ -101,7 +106,6 @@ class Object:
 
 
 class ObjectDetection:
-
     CLASSES = 'detection_classes:0'
     SCORES = 'detection_scores:0'
     BOXES = 'detection_boxes:0'
@@ -177,7 +181,6 @@ class ObjectDetection:
 
         with open(labels_pbtxt) as label_file:
             for item in re.findall('item {(.+?)}', label_file.read().replace("\n", " ")):
-
                 index = int(re.findall("id: (\d+)", item)[0])
                 name = re.findall("display_name: \"(.+?)\"", item)[0]
 
@@ -205,7 +208,7 @@ class ObjectDetectionRequestHandler(BaseRequestHandler):
             t0 = time()
 
             # Receive image width, height and channels from Client
-            width, height, channels = np.frombuffer(self.request.recv(3*4), np.uint32)
+            width, height, channels = np.frombuffer(self.request.recv(3 * 4), np.uint32)
 
             # Receive image of the agreed dimensions from Client
             image = self._receive_image(width, height, channels)
@@ -312,7 +315,6 @@ class ObjectDetectionClient:
 
 
 if __name__ == '__main__':
-
     # Describing Ports to Communicate with Main Pepper Application
     # These should be synced with the client side!
     AVA_port, COCO_port, OID_port = 27001, 27002, 27003
@@ -321,5 +323,5 @@ if __name__ == '__main__':
     # Make sure to have enough CPU/GPU/RAM if you plan to launch multiple at the same time
 
     COCO_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.COCO), COCO_port)
-#     # AVA_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.AVA), AVA_port)
+    #     # AVA_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.AVA), AVA_port)
     OID_server = ObjectDetectionServer(ObjectDetection(ObjectDetectionModel.OID), OID_port)
